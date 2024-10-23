@@ -1,94 +1,111 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <vector>
 #define ll long long
 using namespace std;
 
-/*
-To find if exist subset from range L to R the ANDING == K
-*/
-class sparse_table // 1 index
+struct SPARSETABLE
 {
-private:
-    ll n;
-    vector<ll> v, LOG;
-    vector<vector<ll>> dp;
-
-    ll merge(ll a, ll b)
+    vector<vector<int>> sp;
+    
+    int merge(int a , int b) 
     {
-        // min , max , gcd , lcm , sum
-        return a & b; 
+        return max(a , b);
     }
 
-    void preCount()
+    void build(const vector<int>& A)
     {
-        for (ll i = 2; i <= n; i++)
+        int n = A.size();
+        sp = vector<vector<int>>(__lg(n) + 1 , vector<int>(n));
+        sp[0] = A;
+        
+        for(int mask = 1 ; (1 << mask) <= n ; mask++)
         {
-            LOG[i] = LOG[i >> 1] + 1;
-        }
-    }
-
-    void build()
-    {
-        for (ll i = 0; i < n; i++)
-        {
-            dp[i][0] = v[i];
-        }
-        for (ll mask = 1; (1 << mask) <= n; mask++)
-        {
-            for (ll i = 0; i + (1 << mask) <= n; i++)
+            for(int i = 0 ; i + (1 << mask) <= n ; i++)
             {
-                dp[i][mask] = merge(dp[i][mask - 1], dp[i + (1 << (mask - 1))][mask - 1]);
+                 sp[mask][i] = merge(
+                    sp[mask - 1][i] ,
+                    sp[mask - 1][i + (1 << (mask - 1))]
+                );
             }
         }
     }
 
-public:
-    sparse_table(vector<ll> v)
+    int query(int l , int r) 
     {
-        this->v = v;
-        n = v.size();
-        LOG.assign(n + 1, 0);
-        dp.assign(n + 1, vector<ll>(22, 0));
-        preCount();
-        build();
+        int mask = __lg(r - l + 1);
+        return merge(
+            sp[mask][l] ,
+            sp[mask][r - (1 << mask) + 1]
+        );
     }
 
-    ll query(ll l, ll r)
+    int querylg(int l , int r) 
     {
-        ll mask = LOG[r - l + 1];
-        return merge(dp[l][mask], dp[r - (1 << mask) + 1][mask]);
+        int res = 0;
+        int len = r - l + 1;
+        for(int mask = 0 ; l <= r ; mask++)
+        {
+            if(len >> mask & 1) {
+                res = merge(sp[mask][l] , res);
+                l += 1 << mask;
+            }
+        }
+
+        return res;
     }
 };
 
+
+
 void solve()
 {
-    ll n, k, q;
-    cin >> n >> k >> q;
-    vector<ll> v(n);
-    for (ll i = 0; i < n; i++)
-    {
-        cin >> v[i];
-        if ((v[i] & k) != k)
-            v[i] = LLONG_MAX;
-    }
+    int n , m , q;
+    cin >> n >> m;
+    vector<int> A(m);
+    for(auto &a : A)
+        cin >> a;
+    cin >> q;    
 
-    sparse_table st(v);
-    while (q--)
+    SPARSETABLE sparseTable;
+    sparseTable.build(A);
+    
+    while(q--)
     {
-        ll l, r;
-        cin >> l >> r;
-        if (st.query(--l, --r) == k)
+        int SX , SY , EX , EY , K;
+        cin >> SX >> SY >> EX >> EY >> K;
+        SY-- , EY--;
+        if(SY > EY) {
+            swap(SY , EY);
+            swap(SX , EX);
+        }
+
+        int maxUpPoint = SX + (n - SX) / K * K;
+        int MaxBlocked = sparseTable.query(SY , EY);
+
+        if((SX - EX) % K != 0 || (SY - EY) % K != 0) 
+        {
+            cout << "NO\n";
+            continue;
+        }
+      
+        if(maxUpPoint > MaxBlocked)
             cout << "YES\n";
-        else
+        else 
             cout << "NO\n";
     }
 }
 
 int main()
 {
-    ios_base::sync_with_stdio(false),
-    cout.tie(NULL), cin.tie(NULL);
+    ios_base::sync_with_stdio(false); 
+    cin.tie(NULL);cout.tie(NULL);
 
-    solve();
+    int t;
+    t = 1;
+    // cin >> t;
+    while(t--)
+        solve();
 
     return 0;
 }
+
